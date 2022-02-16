@@ -1,6 +1,10 @@
 
 ## 以太坊逻辑分层 
 
+- 总体架构
+  - ![image.png](./img/zongtijiagou.png)
+  - ![image.png](./img/total.png)
+
 ### 应用层
 ### 合约层
 ### 激励层
