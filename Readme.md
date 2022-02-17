@@ -166,3 +166,65 @@ func rlpHash(x interface{}) (h common.Hash) {
   
 ### 新建区块
 
+core/blockchain.go 主要是对区块链状态进行维护，区块的验证插入和查询
+
+```
+func NewBlockChain(chainDb ethdb.Database, config *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config) (*BlockChain, error) {
+	bodyCache, _ := lru.New(bodyCacheLimit)
+	bodyRLPCache, _ := lru.New(bodyCacheLimit)
+	blockCache, _ := lru.New(blockCacheLimit)
+	futureBlocks, _ := lru.New(maxFutureBlocks)
+	badBlocks, _ := lru.New(badBlockLimit)
+
+	bc := &BlockChain{
+		config:       config,
+		chainDb:      chainDb,
+		stateCache:   state.NewDatabase(chainDb),
+		quit:         make(chan struct{}),
+		bodyCache:    bodyCache,
+		bodyRLPCache: bodyRLPCache,
+		blockCache:   blockCache,
+		futureBlocks: futureBlocks,
+		engine:       engine,
+		vmConfig:     vmConfig,
+		badBlocks:    badBlocks,
+	}
+	bc.SetValidator(NewBlockValidator(config, bc, engine))
+	bc.SetProcessor(NewStateProcessor(config, bc, engine))
+
+	var err error
+	bc.hc, err = NewHeaderChain(chainDb, config, engine, bc.getProcInterrupt)
+	if err != nil {
+		return nil, err
+	}
+	//获取创世区块
+	bc.genesisBlock = bc.GetBlockByNumber(0)
+	if bc.genesisBlock == nil {
+		return nil, ErrNoGenesis
+	}
+	//获取最新的状态
+	if err := bc.loadLastState(); err != nil {
+		return nil, err
+	}
+	// Check the current state of the block hashes and make sure that we do not have any of the bad blocks in our chain
+	for hash := range BadHashes {
+		if header := bc.GetHeaderByHash(hash); header != nil {
+			// get the canonical block corresponding to the offending header's number
+			headerByNumber := bc.GetHeaderByNumber(header.Number.Uint64())
+			// make sure the headerByNumber (if present) is in our current canonical chain
+			if headerByNumber != nil && headerByNumber.Hash() == header.Hash() {
+				log.Error("Found bad hash, rewinding chain", "number", header.Number, "hash", header.ParentHash)
+				bc.SetHead(header.Number.Uint64() - 1)
+				log.Error("Chain rewind was successful, resuming normal operation")
+			}
+		}
+	}
+	// Take ownership of this particular state
+	//更新
+	go bc.update()
+	return bc, nil
+}
+
+
+
+```
