@@ -20,7 +20,7 @@ contract storage_memory_demo {
         user.age = age;
     }
     function setAge2(uint256 age) external {
-        // age会修改,引用传递,
+        // age会修改,引用传递
         User storage user = adminUser;
         user.age = age;
     }
