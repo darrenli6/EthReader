@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 
-function isVisibilityStateSupported() {
-  return 'visibilityState' in document
-}
+const VISIBILITY_STATE_SUPPORTED = 'visibilityState' in document
 
 function isWindowVisible() {
-  return !isVisibilityStateSupported() || document.visibilityState !== 'hidden'
+  return !VISIBILITY_STATE_SUPPORTED || document.visibilityState !== 'hidden'
 }
 
 /**
@@ -18,7 +16,7 @@ export default function useIsWindowVisible(): boolean {
   }, [setFocused])
 
   useEffect(() => {
-    if (!isVisibilityStateSupported()) return undefined
+    if (!VISIBILITY_STATE_SUPPORTED) return undefined
 
     document.addEventListener('visibilitychange', listener)
     return () => {

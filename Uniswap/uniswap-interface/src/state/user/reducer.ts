@@ -1,7 +1,5 @@
+import { INITIAL_ALLOWED_SLIPPAGE, DEFAULT_DEADLINE_FROM_NOW } from '../../constants'
 import { createReducer } from '@reduxjs/toolkit'
-import { SupportedLocale } from 'constants/locales'
-
-import { DEFAULT_DEADLINE_FROM_NOW } from '../../constants/misc'
 import { updateVersion } from '../global/actions'
 import {
   addSerializedPair,
@@ -10,16 +8,13 @@ import {
   removeSerializedToken,
   SerializedPair,
   SerializedToken,
-  updateHideClosedPositions,
   updateMatchesDarkMode,
-  updateShowDonationLink,
-  updateShowSurveyPopup,
-  updateUserClientSideRouter,
   updateUserDarkMode,
-  updateUserDeadline,
   updateUserExpertMode,
-  updateUserLocale,
   updateUserSlippageTolerance,
+  updateUserDeadline,
+  toggleURLWarning,
+  updateUserSingleHopOnly
 } from './actions'
 
 const currentTimestamp = () => new Date().getTime()
@@ -28,21 +23,15 @@ export interface UserState {
   // the timestamp of the last updateVersion action
   lastUpdateVersionTimestamp?: number
 
-  matchesDarkMode: boolean // whether the dark mode media query matches
-
   userDarkMode: boolean | null // the user's choice for dark mode or light mode
-  userLocale: SupportedLocale | null
+  matchesDarkMode: boolean // whether the dark mode media query matches
 
   userExpertMode: boolean
 
-  userClientSideRouter: boolean // whether routes should be calculated with the client side router only
-
-  // hides closed (inactive) positions across the app
-  userHideClosedPositions: boolean
+  userSingleHopOnly: boolean // only allow swaps on direct pairs
 
   // user defined slippage tolerance in bips, used in all txns
-  userSlippageTolerance: number | 'auto'
-  userSlippageToleranceHasBeenMigratedToAuto: boolean // temporary flag for migration status
+  userSlippageTolerance: number
 
   // deadline set by user in minutes, used in all txns
   userDeadline: number
@@ -62,11 +51,6 @@ export interface UserState {
 
   timestamp: number
   URLWarningVisible: boolean
-
-  // undefined means has not gone through A/B split yet
-  showSurveyPopup: boolean | undefined
-
-  showDonationLink: boolean
 }
 
 function pairKey(token0Address: string, token1Address: string) {
@@ -74,53 +58,30 @@ function pairKey(token0Address: string, token1Address: string) {
 }
 
 export const initialState: UserState = {
-  matchesDarkMode: false,
   userDarkMode: null,
+  matchesDarkMode: false,
   userExpertMode: false,
-  userLocale: null,
-  userClientSideRouter: false,
-  userHideClosedPositions: false,
-  userSlippageTolerance: 'auto',
-  userSlippageToleranceHasBeenMigratedToAuto: true,
+  userSingleHopOnly: false,
+  userSlippageTolerance: INITIAL_ALLOWED_SLIPPAGE,
   userDeadline: DEFAULT_DEADLINE_FROM_NOW,
   tokens: {},
   pairs: {},
   timestamp: currentTimestamp(),
-  URLWarningVisible: true,
-  showSurveyPopup: undefined,
-  showDonationLink: true,
+  URLWarningVisible: true
 }
 
-export default createReducer(initialState, (builder) =>
+export default createReducer(initialState, builder =>
   builder
-    .addCase(updateVersion, (state) => {
+    .addCase(updateVersion, state => {
       // slippage isnt being tracked in local storage, reset to default
       // noinspection SuspiciousTypeOfGuard
-      if (
-        typeof state.userSlippageTolerance !== 'number' ||
-        !Number.isInteger(state.userSlippageTolerance) ||
-        state.userSlippageTolerance < 0 ||
-        state.userSlippageTolerance > 5000
-      ) {
-        state.userSlippageTolerance = 'auto'
-      } else {
-        if (
-          !state.userSlippageToleranceHasBeenMigratedToAuto &&
-          [10, 50, 100].indexOf(state.userSlippageTolerance) !== -1
-        ) {
-          state.userSlippageTolerance = 'auto'
-          state.userSlippageToleranceHasBeenMigratedToAuto = true
-        }
+      if (typeof state.userSlippageTolerance !== 'number') {
+        state.userSlippageTolerance = INITIAL_ALLOWED_SLIPPAGE
       }
 
       // deadline isnt being tracked in local storage, reset to default
       // noinspection SuspiciousTypeOfGuard
-      if (
-        typeof state.userDeadline !== 'number' ||
-        !Number.isInteger(state.userDeadline) ||
-        state.userDeadline < 60 ||
-        state.userDeadline > 180 * 60
-      ) {
+      if (typeof state.userDeadline !== 'number') {
         state.userDeadline = DEFAULT_DEADLINE_FROM_NOW
       }
 
@@ -138,10 +99,6 @@ export default createReducer(initialState, (builder) =>
       state.userExpertMode = action.payload.userExpertMode
       state.timestamp = currentTimestamp()
     })
-    .addCase(updateUserLocale, (state, action) => {
-      state.userLocale = action.payload.userLocale
-      state.timestamp = currentTimestamp()
-    })
     .addCase(updateUserSlippageTolerance, (state, action) => {
       state.userSlippageTolerance = action.payload.userSlippageTolerance
       state.timestamp = currentTimestamp()
@@ -150,17 +107,8 @@ export default createReducer(initialState, (builder) =>
       state.userDeadline = action.payload.userDeadline
       state.timestamp = currentTimestamp()
     })
-    .addCase(updateUserClientSideRouter, (state, action) => {
-      state.userClientSideRouter = action.payload.userClientSideRouter
-    })
-    .addCase(updateHideClosedPositions, (state, action) => {
-      state.userHideClosedPositions = action.payload.userHideClosedPositions
-    })
-    .addCase(updateShowSurveyPopup, (state, action) => {
-      state.showSurveyPopup = action.payload.showSurveyPopup
-    })
-    .addCase(updateShowDonationLink, (state, action) => {
-      state.showDonationLink = action.payload.showDonationLink
+    .addCase(updateUserSingleHopOnly, (state, action) => {
+      state.userSingleHopOnly = action.payload.userSingleHopOnly
     })
     .addCase(addSerializedToken, (state, { payload: { serializedToken } }) => {
       if (!state.tokens) {
@@ -196,5 +144,8 @@ export default createReducer(initialState, (builder) =>
         delete state.pairs[chainId][pairKey(tokenBAddress, tokenAAddress)]
       }
       state.timestamp = currentTimestamp()
+    })
+    .addCase(toggleURLWarning, state => {
+      state.URLWarningVisible = !state.URLWarningVisible
     })
 )

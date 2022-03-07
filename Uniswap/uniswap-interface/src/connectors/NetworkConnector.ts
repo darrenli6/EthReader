@@ -1,6 +1,6 @@
+import { ConnectorUpdate } from '@web3-react/types'
+import { AbstractConnector } from '@web3-react/abstract-connector'
 import invariant from 'tiny-invariant'
-import { AbstractConnector } from 'web3-react-abstract-connector'
-import { ConnectorUpdate } from 'web3-react-types'
 
 interface NetworkConnectorArguments {
   urls: { [chainId: number]: string }
@@ -36,14 +36,11 @@ class MiniRpcProvider implements AsyncSendable {
   public readonly path: string
   public readonly batchWaitTimeMs: number
 
-  private readonly connector: NetworkConnector
-
   private nextId = 1
   private batchTimeoutId: ReturnType<typeof setTimeout> | null = null
   private batch: BatchItem[] = []
 
-  constructor(connector: NetworkConnector, chainId: number, url: string, batchWaitTimeMs?: number) {
-    this.connector = connector
+  constructor(chainId: number, url: string, batchWaitTimeMs?: number) {
     this.chainId = chainId
     this.url = url
     const parsed = new URL(url)
@@ -55,21 +52,7 @@ class MiniRpcProvider implements AsyncSendable {
 
   public readonly clearBatch = async () => {
     console.debug('Clearing batch', this.batch)
-    let batch = this.batch
-
-    batch = batch.filter((b) => {
-      if (b.request.method === 'wallet_switchEthereumChain') {
-        try {
-          this.connector.changeChainId(parseInt((b.request.params as [{ chainId: string }])[0].chainId))
-          b.resolve({ id: b.request.id })
-        } catch (error) {
-          b.reject(error)
-        }
-        return false
-      }
-      return true
-    })
-
+    const batch = this.batch
     this.batch = []
     this.batchTimeoutId = null
     let response: Response
@@ -77,7 +60,7 @@ class MiniRpcProvider implements AsyncSendable {
       response = await fetch(this.url, {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify(batch.map((item) => item.request)),
+        body: JSON.stringify(batch.map(item => item.request))
       })
     } catch (error) {
       batch.forEach(({ reject }) => reject(new Error('Failed to send batch call')))
@@ -104,35 +87,32 @@ class MiniRpcProvider implements AsyncSendable {
       const {
         resolve,
         reject,
-        request: { method },
+        request: { method }
       } = byKey[result.id]
-      if ('error' in result) {
-        reject(new RequestError(result?.error?.message, result?.error?.code, result?.error?.data))
-      } else if ('result' in result && resolve) {
-        resolve(result.result)
-      } else {
-        reject(new RequestError(`Received unexpected JSON-RPC response to ${method} request.`, -32000, result))
+      if (resolve && reject) {
+        if ('error' in result) {
+          reject(new RequestError(result?.error?.message, result?.error?.code, result?.error?.data))
+        } else if ('result' in result) {
+          resolve(result.result)
+        } else {
+          reject(new RequestError(`Received unexpected JSON-RPC response to ${method} request.`, -32000, result))
+        }
       }
     }
   }
 
   public readonly sendAsync = (
-    request: {
-      jsonrpc: '2.0'
-      id: number | string | null
-      method: string
-      params?: unknown[] | Record<string, unknown>
-    },
+    request: { jsonrpc: '2.0'; id: number | string | null; method: string; params?: unknown[] | object },
     callback: (error: any, response: any) => void
   ): void => {
     this.request(request.method, request.params)
-      .then((result) => callback(null, { jsonrpc: '2.0', id: request.id, result }))
-      .catch((error) => callback(error, null))
+      .then(result => callback(null, { jsonrpc: '2.0', id: request.id, result }))
+      .catch(error => callback(error, null))
   }
 
   public readonly request = async (
     method: string | { method: string; params: unknown[] },
-    params?: unknown[] | Record<string, unknown>
+    params?: unknown[] | object
   ): Promise<unknown> => {
     if (typeof method !== 'string') {
       return this.request(method.method, method.params)
@@ -146,10 +126,10 @@ class MiniRpcProvider implements AsyncSendable {
           jsonrpc: '2.0',
           id: this.nextId++,
           method,
-          params,
+          params
         },
         resolve,
-        reject,
+        reject
       })
     })
     this.batchTimeoutId = this.batchTimeoutId ?? setTimeout(this.clearBatch, this.batchWaitTimeMs)
@@ -165,9 +145,9 @@ export class NetworkConnector extends AbstractConnector {
     invariant(defaultChainId || Object.keys(urls).length === 1, 'defaultChainId is a required argument with >1 url')
     super({ supportedChainIds: Object.keys(urls).map((k): number => Number(k)) })
 
-    this.currentChainId = defaultChainId ?? Number(Object.keys(urls)[0])
+    this.currentChainId = defaultChainId || Number(Object.keys(urls)[0])
     this.providers = Object.keys(urls).reduce<{ [chainId: number]: MiniRpcProvider }>((accumulator, chainId) => {
-      accumulator[Number(chainId)] = new MiniRpcProvider(this, Number(chainId), urls[Number(chainId)])
+      accumulator[Number(chainId)] = new MiniRpcProvider(Number(chainId), urls[Number(chainId)])
       return accumulator
     }, {})
   }
@@ -194,22 +174,5 @@ export class NetworkConnector extends AbstractConnector {
 
   public deactivate() {
     return
-  }
-
-  /**
-   * Meant to be called only by MiniRpcProvider
-   * @param chainId the new chain id
-   */
-  public changeChainId(chainId: number) {
-    if (chainId in this.providers) {
-      this.currentChainId = chainId
-      this.emitUpdate({
-        chainId,
-        account: null,
-        provider: this.providers[chainId],
-      })
-    } else {
-      throw new Error(`Unsupported chain ID: ${chainId}`)
-    }
   }
 }

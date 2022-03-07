@@ -1,27 +1,21 @@
-import { SupportedChainId } from 'constants/chains'
-import useActiveWeb3React from 'hooks/useActiveWeb3React'
-import { useLocation } from 'react-router-dom'
-import styled from 'styled-components/macro'
-import { MEDIA_WIDTHS } from 'theme'
-
+import React from 'react'
+import styled from 'styled-components'
 import { useActivePopups } from '../../state/application/hooks'
-import { useShowDonationLink, useURLWarningVisible } from '../../state/user/hooks'
 import { AutoColumn } from '../Column'
-import ClaimPopup from './ClaimPopup'
-import DonationLink from './DonationLink'
 import PopupItem from './PopupItem'
+import ClaimPopup from './ClaimPopup'
+import { useURLWarningVisible } from '../../state/user/hooks'
 
 const MobilePopupWrapper = styled.div<{ height: string | number }>`
   position: relative;
   max-width: 100%;
   height: ${({ height }) => height};
   margin: ${({ height }) => (height ? '0 auto;' : 0)};
-  margin-bottom: ${({ height }) => (height ? '20px' : 0)};
+  margin-bottom: ${({ height }) => (height ? '20px' : 0)}};
 
   display: none;
   ${({ theme }) => theme.mediaWidth.upToSmall`
     display: block;
-    padding-top: 20px;
   `};
 `
 
@@ -37,13 +31,9 @@ const MobilePopupInner = styled.div`
   }
 `
 
-const StopOverflowQuery = `@media screen and (min-width: ${MEDIA_WIDTHS.upToMedium + 1}px) and (max-width: ${
-  MEDIA_WIDTHS.upToMedium + 500
-}px)`
-
-const FixedPopupColumn = styled(AutoColumn)<{ extraPadding: boolean; xlPadding: boolean }>`
+const FixedPopupColumn = styled(AutoColumn)<{ extraPadding: boolean }>`
   position: fixed;
-  top: ${({ extraPadding }) => (extraPadding ? '64px' : '56px')};
+  top: ${({ extraPadding }) => (extraPadding ? '108px' : '88px')};
   right: 1rem;
   max-width: 355px !important;
   width: 100%;
@@ -52,10 +42,6 @@ const FixedPopupColumn = styled(AutoColumn)<{ extraPadding: boolean; xlPadding: 
   ${({ theme }) => theme.mediaWidth.upToSmall`
     display: none;
   `};
-
-  ${StopOverflowQuery} {
-    top: ${({ extraPadding, xlPadding }) => (xlPadding ? '64px' : extraPadding ? '64px' : '56px')};
-  }
 `
 
 export default function Popups() {
@@ -64,31 +50,20 @@ export default function Popups() {
 
   const urlWarningActive = useURLWarningVisible()
 
-  // need extra padding if network is not L1 Ethereum
-  const { chainId } = useActiveWeb3React()
-  const isNotOnMainnet = Boolean(chainId && chainId !== SupportedChainId.MAINNET)
-
-  const location = useLocation()
-  const isOnSwapPage = location.pathname.includes('swap')
-  const [donationVisible] = useShowDonationLink()
-  const showDonation = donationVisible && isOnSwapPage
-
   return (
     <>
-      <FixedPopupColumn gap="20px" extraPadding={urlWarningActive} xlPadding={isNotOnMainnet}>
+      <FixedPopupColumn gap="20px" extraPadding={urlWarningActive}>
         <ClaimPopup />
-        {activePopups.map((item) => (
+        {activePopups.map(item => (
           <PopupItem key={item.key} content={item.content} popKey={item.key} removeAfterMs={item.removeAfterMs} />
         ))}
-        {showDonation ? <DonationLink /> : null}
       </FixedPopupColumn>
-      <MobilePopupWrapper height={activePopups?.length > 0 || showDonation ? 'fit-content' : 0}>
+      <MobilePopupWrapper height={activePopups?.length > 0 ? 'fit-content' : 0}>
         <MobilePopupInner>
-          {showDonation ? <DonationLink /> : null}
           {activePopups // reverse so new items up front
             .slice(0)
             .reverse()
-            .map((item) => (
+            .map(item => (
               <PopupItem key={item.key} content={item.content} popKey={item.key} removeAfterMs={item.removeAfterMs} />
             ))}
         </MobilePopupInner>
