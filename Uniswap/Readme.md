@@ -288,10 +288,117 @@ $ git clone https://github.com/Uniswap/uniswap-interface.git
 ```
 
 - 安装依赖库
-在项目目录运行命令：
+在项目目录运行命令,安装依赖：
+```
 $ cd uniswap-interface
 
+yarn 
+```
 > 安装完成后，可以先测试运行一下，在uniswap-interface目录运行命令
 
+```
+yarn start
+```
+
+如果运行成功,就会打开uniswap前端网页
+
+#### 修改路由地址
+
+> 在Uniswap的前端中以常量的形式定义了Uniswap的路由地址，我们只需要修改路由地址就可以让前端链接到你的路由合约中
+
+```
+rinkby
+//0x2A2b995f6f5432bCe22425e84dF86918c4ead37b
+ropsten
+//0x468a7548920835a7765591cdA249BC202d685ebf
+
+```
 
 
+> 修改文件：项目目录/uniswap-interface/src/constants/index.ts第6行
+```
+import { AbstractConnector } from '@web3-react/abstract-connector'
+import{ ChainId,JSBI,Percent,Token,WETH } from'@uniswap/sdk'
+import { fortmatic, injected, portis, walletconnect, walletlink } from'../connectors'
+export const ROUTER_ADDRESS ='0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'//修改成你的路由合约地址
+
+```
+
+
+保存后运行 yarn start即可看到效果
+
+### 将代码部署到GitHub Pages
+#### 创建GitHub项目
+
+ 
+ 
+将前端代码添加到GitHub项目仓库
+首先要删除原先Uniswap项目中的.git目录，在项目目录运行命令：
+```
+$ cd uniswap-interface
+$ rm rf .git
+```
+然后初始化git，井将Unsiwap前端代码添加到自己的项目仓库中
+
+```
+git init
+git remote add origin https://github.com/用户名/项目名.git
+```
+
+
+
+#### 安装并部署gh-pages
+
+我们将通过gh-pages模块将前端代码部署到github.lo,在前端代码的目录运行：
+```
+$ yarn add gh-pages
+```
+
+接下来要编译react和部看gh-pages,在前端代码的目录运行：
+```
+$ yarn build
+```
+
+修改前端代码目录中的package.json
+```
+$ vim package.json
+"name":
+"@uniswap/interface",
+"description": "Uniswap Interface",
+"homepage"："https://用户名.github,io/项目名称"，//修改这里
+// 添加部著的脚本，还是在package.json中
+"scripts":{
+"deploy"："gh-pages -d build"//添加这一行
+}
+
+```
+
+保存退出之后，在前端代码的目录运行：
+
+```
+$ git add .
+$ git commit -m "first commit"
+$ git push
+// 编译
+$ yarn build 
+// 部署
+$ yarn deploy
+```
+
+
+现在在浏览器中打开https://用户名.github.io/项目名称/index.html就可以
+https://darrenli6.github.io/LijiaSwap
+打开自己的交易所啦。
+如果不输入地址结尾的index.html在项目刚部署之后会报错，过一段时间就可以
+不输入了
+
+
+```
+$ gh-pages -d build
+fatal: A branch named 'gh-pages' already exists.
+
+error Command failed with exit code 1.
+
+rm -rf node_modules/.cache/gh-pages 
+
+```
