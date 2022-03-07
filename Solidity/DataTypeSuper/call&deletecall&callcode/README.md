@@ -1,5 +1,5 @@
 
-### call   deletecall  && callcode 
+### call   delegatecall  && callcode 
 
 对于文章中提到的三种调用方式的异同点
 
