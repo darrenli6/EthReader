@@ -274,10 +274,16 @@ kovan:'8xdeA1E359811322d97991E83f863a0C30C2cF029C'
 
 ### 部署顺序和构造函数
 - 1.部署工厂合约
+  - ![image.png](./img/uniswap_fac_dep.png)
+  - ![image.png](./img/fac_dep_success.png)
   - 构造函数的参数是一个自己常用的账户地址
 - 2.部署路由合约01[可选]，02
+  
   - 构造函数的参数1是工厂合约的地址
   - 参数2是当前网络中WETH合约的地址，参考前文
+  - ![image.png](./img/3route_dep.png)
+  - ![image.png](./img/4route_dep.png)
+ 
 
 ### 部署Uniswap前端
 - 克隆前端代码
@@ -365,10 +371,10 @@ $ vim package.json
 "name":
 "@uniswap/interface",
 "description": "Uniswap Interface",
-"homepage"："https://用户名.github,io/项目名称"，//修改这里
+"homepage"："https://darrenli6.github,io/interface"，//修改这里
 // 添加部著的脚本，还是在package.json中
 "scripts":{
-"deploy"："gh-pages -d build"//添加这一行
+"deploy":"gh-pages -d build",//添加这一行
 }
 
 ```
@@ -387,11 +393,15 @@ $ yarn deploy
 
 
 现在在浏览器中打开https://用户名.github.io/项目名称/index.html就可以
-https://darrenli6.github.io/LijiaSwap
+https://darrenli6.github.io/interface
 打开自己的交易所啦。
 如果不输入地址结尾的index.html在项目刚部署之后会报错，过一段时间就可以
-不输入了
 
+ - ![image.png](./img/5.png)
+
+#### 发币测试 
+
+[LJC](Solidity/ERC20/ERC20.sol)
 
 ```
 $ gh-pages -d build
