@@ -124,6 +124,12 @@
 
 ## fallback() 与receive 
 
+
+- fallback() 回调函数
+- receive() 接收函数
+
+
+
 匿名函数 就是fallback()
 
 

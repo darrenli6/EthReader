@@ -1,0 +1,88 @@
+{
+	"compiler": {
+		"version": "0.5.17+commit.d19bba13"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"constant": false,
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "tokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "tokenAdmount",
+						"type": "uint256"
+					}
+				],
+				"name": "buy",
+				"outputs": [],
+				"payable": true,
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"constant": false,
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "token",
+						"type": "address"
+					}
+				],
+				"name": "createExchange",
+				"outputs": [],
+				"payable": false,
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"constant": false,
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "uniswapFactoryAddress",
+						"type": "address"
+					}
+				],
+				"name": "setup",
+				"outputs": [],
+				"payable": false,
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"methods": {}
+		},
+		"userdoc": {
+			"methods": {}
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"uniswap/MyDefi.sol": "MyDefi"
+		},
+		"evmVersion": "istanbul",
+		"libraries": {},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"uniswap/MyDefi.sol": {
+			"keccak256": "0xe913bab1ffde5deeef7d304983445cbc80527f7758d37a9fad41547f3df05ba6",
+			"urls": [
+				"bzz-raw://e18d00fdb3db4768a2f94366899d0842a5ad8967bc90f872fd3aaf9a31b9a2ba",
+				"dweb:/ipfs/QmYZHxwsZbrUAZxF1N4yCLAgNkUoLrTFcm7AAAmCPiHZ6S"
+			]
+		}
+	},
+	"version": 1
+}
