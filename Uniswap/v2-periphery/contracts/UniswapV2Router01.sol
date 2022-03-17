@@ -14,6 +14,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
     address public immutable override WETH;
 
     // 修饰符 确保最后期限大于当前时间
+    // 交易防止太慢
     modifier ensure(uint deadline) {
         require(deadline >= block.timestamp, 'UniswapV2Router: EXPIRED');
         _;
@@ -43,16 +44,21 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
     function _addLiquidity(
         address tokenA,
         address tokenB,
-        uint amountADesired,
+        uint amountADesired, // 期望数额
         uint amountBDesired,
-        uint amountAMin,
+        uint amountAMin,  // 最小数额 
         uint amountBMin
-    ) private returns (uint amountA, uint amountB) {
+    ) private returns
+     (uint amountA,   
+    uint amountB) {
         // create the pair if it doesn't exist yet
+        // 调用配对合约
+        // 配对是否存在
         if (IUniswapV2Factory(factory).getPair(tokenA, tokenB) == address(0)) {
             IUniswapV2Factory(factory).createPair(tokenA, tokenB);
         }
 
+        // 创建配对合约
         (uint reserveA, uint reserveB) = UniswapV2Library.getReserves(factory, tokenA, tokenB);
         if (reserveA == 0 && reserveB == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
@@ -88,6 +94,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
         address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
       
       // 将数量amountA的tokenA 从msg.sender账户 安全发送到pair合约地址
+      //
         TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
        // 将数量amountB的tokenB 从msg.sender账户 安全发送到pair合约地址 
         TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
@@ -99,6 +106,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
 
 /*
  @dev 添加ETH流动性方法
+ eth转化为weth
 
 */
     function addLiquidityETH(
@@ -117,7 +125,9 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
             amountTokenMin,
             amountETHMin
         );
+        // 获取配对合约地址
         address pair = UniswapV2Library.pairFor(factory, token, WETH);
+        
         TransferHelper.safeTransferFrom(token, msg.sender, pair, amountToken);
         IWETH(WETH).deposit{value: amountETH}();
         assert(IWETH(WETH).transfer(pair, amountETH));
@@ -130,6 +140,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
     /*
     
      移除流动性
+
     */
 
     function removeLiquidity(
@@ -144,6 +155,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
         // 计算TokenA TokenB在create2的地址,而无需进行任何外部调用
         address pair = UniswapV2Library.pairFor(factory, tokenA, tokenB);
         //将流动性数量从用户发送到pair地址 需要提前批准
+        // transferFrom
         IUniswapV2Pair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
 
         (uint amount0, uint amount1) = IUniswapV2Pair(pair).burn(to);
@@ -155,6 +167,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
 
     /*
     移除WETH流动性
+
     */
     function removeLiquidityETH(
         address token,
@@ -179,7 +192,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
     }
 
     /*
-    
+    带签名移除流动性
     */
     function removeLiquidityWithPermit(
         address tokenA,
@@ -196,6 +209,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
         IUniswapV2Pair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
     }
+    // 带签名
     function removeLiquidityETHWithPermit(
         address token,
         uint liquidity,
@@ -213,6 +227,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
 
     // **** SWAP ****
     // requires the initial amount to have already been sent to the first pair
+    // 交换
     function _swap(uint[] memory amounts, address[] memory path, address _to) private {
         for (uint i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
@@ -224,11 +239,15 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
         }
     }
 
+
+// 下面有6中方法
 /*
 @dev 根据精确的token交换尽量多的token
 
+输入求输出
 
 */
+
 
     function swapExactTokensForTokens(
         uint amountIn,
@@ -243,6 +262,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
         _swap(amounts, path, to);
     }
     // 使用尽量少的token交换精确的token
+    // 根据输出, 求输入
     function swapTokensForExactTokens(
         uint amountOut,
         uint amountInMax,
@@ -257,6 +277,7 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
     }
 
     // 根据精确的ETH交换尽量多的token
+    //输入eth ,求输出
     function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
         external
         override
@@ -271,6 +292,8 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
         assert(IWETH(WETH).transfer(UniswapV2Library.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
     }
+
+    //输出是eth 求输入
     
     function swapTokensForExactETH(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
         external
@@ -286,6 +309,8 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
     }
+
+    // 精确的token 换eth  给输入 求输出
     function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
         external
         override
@@ -300,6 +325,8 @@ contract UniswapV2Router01 is IUniswapV2Router01 {
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
     }
+
+  
     function swapETHForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
         external
         override

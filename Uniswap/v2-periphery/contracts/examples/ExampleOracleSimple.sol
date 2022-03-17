@@ -7,6 +7,7 @@ import '@uniswap/lib/contracts/libraries/FixedPoint.sol';
 import '../libraries/UniswapV2OracleLibrary.sol';
 import '../libraries/UniswapV2Library.sol';
 
+// 价格预言机
 // fixed window oracle that recomputes the average price for the entire period once every period
 // note that the price average is only guaranteed to be over at least 1 period, but may be over a longer period
 contract ExampleOracleSimple {
@@ -38,6 +39,8 @@ contract ExampleOracleSimple {
     }
 
     function update() external {
+        // 通过pair合约的地址 取数值 
+        
         (uint price0Cumulative, uint price1Cumulative, uint32 blockTimestamp) =
             UniswapV2OracleLibrary.currentCumulativePrices(address(pair));
         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired

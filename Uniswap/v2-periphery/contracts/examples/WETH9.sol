@@ -32,6 +32,7 @@ contract WETH9 {
     mapping (address => uint)                       public  balanceOf;
     mapping (address => mapping (address => uint))  public  allowance;
 
+// 主币向代币交互的合约
     function() public payable {
         deposit();
     }
@@ -40,6 +41,7 @@ contract WETH9 {
         balanceOf[msg.sender] += msg.value;
         Deposit(msg.sender, msg.value);
     }
+    // 取款
     function withdraw(uint wad) public {
         require(balanceOf[msg.sender] >= wad);
         balanceOf[msg.sender] -= wad;

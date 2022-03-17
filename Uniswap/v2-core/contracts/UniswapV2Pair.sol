@@ -8,16 +8,27 @@ import './interfaces/IERC20.sol';
 import './interfaces/IUniswapV2Factory.sol';
 import './interfaces/IUniswapV2Callee.sol';
 //Uniswap配对合约
+
+/*
+三大功能
+- swap
+- burn
+- mint 
+
+*/
 contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     // 库 
     using SafeMath  for uint;
 
     using UQ112x112 for uint224;
 
+
+
     // 最小流动性 =1000 
     uint public constant MINIMUM_LIQUIDITY = 10**3;
     // selector 常量值为 'transfer(address,uint256)' 字符串哈希值的前4位16进制数字
     // trsanction  input Data --> methodID 8个字符  [0][1] 是参数
+    // 
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
     address public factory;  // 工厂地址
@@ -39,6 +50,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
  @dev 修饰符: 锁定运行防止重入
 */ 
     uint private unlocked = 1;
+
     modifier lock() {
         require(unlocked == 1, 'UniswapV2: LOCKED');
         unlocked = 0;
@@ -66,9 +78,20 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 */
     function _safeTransfer(address token, address to, uint value) private {
         //调用token合约地址的低级transfer方法
-        // solium-disable-next-line    报错
+        // solium-disable-next-line    防止报错
         // call底层呼叫
         // 在你没有接口ABI的情况下 也是可以调用的
+        // 4位16进制值
+
+    
+
+        /*
+           bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
+
+          一个合约调用另外一个合约
+          通过接口合约调用
+          没有接口合约,通过底层的call
+        */
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(SELECTOR, to, value));
         // 确认返回值为true 并且返回的data长度为0或者解码后为true
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'UniswapV2: TRANSFER_FAILED');
@@ -130,6 +153,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
         // 区块链时间戳,将时间戳转化为uint32
         //solium-disable-next-line
+        // 32位
         uint32 blockTimestamp = uint32(block.timestamp % 2**32);
         // 计算时间流失
         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
@@ -169,6 +193,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
             // k不等于0 
             if (_kLast != 0) {
                 // 计算储备量的k
+                // 取平方根
                 uint rootK = Math.sqrt(uint(_reserve0).mul(_reserve1));
                 // 计算k的平方根
                 uint rootKLast = Math.sqrt(_kLast);
@@ -195,10 +220,15 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     @return liquidity 流动性数量
     @dev 铸造方法
     @notice 应该从执行重要安全检查的合同中调用此低级功能
+
+    铸造给谁
+
+
      */
      
     function mint(address to) external lock returns (uint liquidity) {
         // 获取储备量
+        // 第三个值留空了
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
         // 获取token的余额
         uint balance0 = IERC20(token0).balanceOf(address(this));
@@ -232,6 +262,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         _update(balance0, balance1, _reserve0, _reserve1);
         //  如果铸造开关为true k值= 储备量0 * 储备量1\
         // AMM 固定乘积算法
+         // KLast 就是 k值    reserve0 x   Y 
+
         if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
         emit Mint(msg.sender, amount0, amount1);
     }
@@ -241,25 +273,31 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
      @dev 销毁方法
      @notice 应该从执行重要检查的合同中调用此低级功能
 
+     取出储备量
+
+     lock防止重入开关
+
+     发给配对合约,根据自身
+
     */
     function burn(address to) 
     external 
     lock returns (uint amount0, uint amount1) {
         // 获取储备量0 储备1  
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
-         // 带入变量
+         // 带入变量  全局变量赋值给临时变量可以节省gas
         address _token0 = token0;                                // gas savings
-
-        address _token1 = token1;                                // gas savings
+        address _token1 = token1;                                   // gas savings
         // 获取当前合约在token0合约内的余额
         uint balance0 = IERC20(_token0).balanceOf(address(this));
         // 获取当前合约在token1合约内的余额
         uint balance1 = IERC20(_token1).balanceOf(address(this));
-
+        // 获取当前合约自身的流动性数量
         uint liquidity = balanceOf[address(this)];
          // 返回铸造费的开关
         bool feeOn = _mintFee(_reserve0, _reserve1);
         //获取totalSuppy  必须在此定义  因为totalsupply 可以在mintFee中更新
+
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
         // amount0 =流动性数量 *余额0 / totalsupply   使用余额确保按比例分配  
         amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution
@@ -278,10 +316,12 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         balance1 = IERC20(_token1).balanceOf(address(this));
 
         // 更新储存量
+        
         _update(balance0, balance1, _reserve0, _reserve1);
         // 如果铸造费开发为true  k值 = 储备量0 * 储备量1 
         if (feeOn) kLast = uint(reserve0).mul(reserve1); // reserve0 and reserve1 are up-to-date
         // 发送销毁事件
+        // ERC20不一样
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
@@ -294,9 +334,12 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     @param  data 用于回调的数据
     @dev 交换方法
     @notice 应该从执行重要检查的合同中调用此低级功能
+
+    收税在路由合约
     */
     function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external lock {
         //大于0 
+
         require(amount0Out > 0 || amount1Out > 0, 'UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT');
         // 存储量
         (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
@@ -308,6 +351,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint balance1;
        
         // {} 作用域 变量出不去
+        // 避免堆栈太深
         { // scope for _token{0,1}, avoids stack too deep errors
 
         address _token0 = token0;
@@ -321,9 +365,11 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
        
         if (data.length > 0) 
-        // 闪电贷
+        // 闪电贷功能
         IUniswapV2Callee(to).uniswapV2Call(
-            msg.sender, amount0Out, amount1Out, 
+            msg.sender, 
+            amount0Out,
+            amount1Out, 
             data);
 
          
@@ -338,11 +384,11 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         require(amount0In > 0 || amount1In > 0, 'UniswapV2: INSUFFICIENT_INPUT_AMOUNT');
 
         { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-
+        
         uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
         
         uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
-        
+        // 用这种方式证明之前的交易收税了
         require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0)
         .mul(_reserve1)
         .mul(1000**2), 'UniswapV2: K');
@@ -356,13 +402,17 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     // force balances to match reserves
     /*
+  
      @dev 强制平衡以匹配储备
     */
     function skim(address to) external lock {
+        //节约gas
         address _token0 = token0; // gas savings
         address _token1 = token1; // gas savings
         // 将当前合约的token0,1 的余额-储备量0,1 安全发送到to地址
-        _safeTransfer(_token0, to, IERC20(_token0).balanceOf(address(this)).sub(reserve0));
+        _safeTransfer(_token0, 
+        to, 
+        IERC20(_token0).balanceOf(address(this)).sub(reserve0));
 
         _safeTransfer(_token1, to, IERC20(_token1).balanceOf(address(this)).sub(reserve1));
     }
@@ -370,13 +420,14 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     // force reserves to match balances
 
     /*
-     @dev 强制准备金与余额匹配
-    */
+     @dev 强制准备金与余额匹配 没听懂
+    */ 
     function sync() external lock {
 
         _update(
         IERC20(token0).balanceOf(address(this)), 
         IERC20(token1).balanceOf(address(this)), 
-        reserve0, reserve1);
+        reserve0, 
+        reserve1);
     }
 }
