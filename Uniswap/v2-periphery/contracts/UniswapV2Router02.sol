@@ -33,18 +33,22 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
    
     function _addLiquidity(
         address tokenA,
-        address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin
+        address tokenB, 
+        uint amountADesired, // 期望数额
+        uint amountBDesired,  // 期望数额
+        uint amountAMin,  // 最小
+          
+        uint amountBMin  // 最小
     ) internal virtual returns (uint amountA, uint amountB) {
         // create the pair if it doesn't exist yet
+        // 配对是否存在
         if (IUniswapV2Factory(factory).getPair(tokenA, tokenB) == address(0)) {
             IUniswapV2Factory(factory).createPair(tokenA, tokenB);
         }
+        // 获取储备量
         (uint reserveA, uint reserveB) = UniswapV2Library.getReserves(factory, tokenA, tokenB);
         if (reserveA == 0 && reserveB == 0) {
+        
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
             uint amountBOptimal = UniswapV2Library.quote(amountADesired, reserveA, reserveB);
@@ -63,10 +67,10 @@ contract UniswapV2Router02 is IUniswapV2Router02 {
     function addLiquidity(
         address tokenA,
         address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin,
+        uint amountADesired,  // 期望数额
+        uint amountBDesired,  // 期望数额
+        uint amountAMin,  // 最小数额
+        uint amountBMin,  // 最小数额
         address to,
         uint deadline
     ) external virtual override ensure(deadline) returns (uint amountA, uint amountB, uint liquidity) {

@@ -40,7 +40,7 @@ contract ExampleOracleSimple {
 
     function update() external {
         // 通过pair合约的地址 取数值 
-        
+
         (uint price0Cumulative, uint price1Cumulative, uint32 blockTimestamp) =
             UniswapV2OracleLibrary.currentCumulativePrices(address(pair));
         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
@@ -50,9 +50,11 @@ contract ExampleOracleSimple {
 
         // overflow is desired, casting never truncates
         // cumulative price is in (uq112x112 price * seconds) units so we simply wrap it after division by time elapsed
+        // 运算
         price0Average = FixedPoint.uq112x112(uint224((price0Cumulative - price0CumulativeLast) / timeElapsed));
         price1Average = FixedPoint.uq112x112(uint224((price1Cumulative - price1CumulativeLast) / timeElapsed));
 
+        
         price0CumulativeLast = price0Cumulative;
         price1CumulativeLast = price1Cumulative;
         blockTimestampLast = blockTimestamp;
@@ -61,6 +63,7 @@ contract ExampleOracleSimple {
     // note this will always return 0 before update has been called successfully for the first time.
     function consult(address token, uint amountIn) external view returns (uint amountOut) {
         if (token == token0) {
+            
             amountOut = price0Average.mul(amountIn).decode144();
         } else {
             require(token == token1, 'ExampleOracleSimple: INVALID_TOKEN');

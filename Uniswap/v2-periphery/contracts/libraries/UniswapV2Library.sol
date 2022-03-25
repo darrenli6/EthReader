@@ -20,6 +20,8 @@ library UniswapV2Library {
  @notice 计算一对create2地址,无需要进行对外调用
  @param factory 工厂地址
 
+ 配对合约地址不是从工厂合约中请求到的,而是通过tokenA token B 计算得到的
+
 */
     // calculates the CREATE2 address for a pair without making any external calls
     function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
@@ -38,11 +40,13 @@ library UniswapV2Library {
 */
     // fetches and sorts the reserves for a pair
     function getReserves(address factory, address tokenA, address tokenB) internal view returns (uint reserveA, uint reserveB) {
-        // 排序
+        // 排序  是不相等
         (address token0,) = sortTokens(tokenA, tokenB);
 
 
+          
         (uint reserve0, uint reserve1,) = IUniswapV2Pair(pairFor(factory, tokenA, tokenB)).getReserves();
+       // 还是要排序操作
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
