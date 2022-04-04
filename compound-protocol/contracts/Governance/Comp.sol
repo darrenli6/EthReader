@@ -1,6 +1,7 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
-
+// ERC20 合约 
+//dao 
 contract Comp {
     /// @notice EIP-20 token name for this token
     string public constant name = "Compound";
@@ -174,6 +175,7 @@ contract Comp {
      * @param account The address to get votes balance
      * @return The number of current votes for `account`
      */
+     // 获取到当前投票数
     function getCurrentVotes(address account) external view returns (uint96) {
         uint32 nCheckpoints = numCheckpoints[account];
         return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
@@ -186,6 +188,7 @@ contract Comp {
      * @param blockNumber The block number to get the vote balance at
      * @return The number of votes the account had as of the given block
      */
+     // 获取之前的投票
     function getPriorVotes(address account, uint blockNumber) public view returns (uint96) {
         require(blockNumber < block.number, "Comp::getPriorVotes: not yet determined");
 
@@ -220,6 +223,7 @@ contract Comp {
         return checkpoints[account][lower].votes;
     }
 
+// 开启投票
     function _delegate(address delegator, address delegatee) internal {
         address currentDelegate = delegates[delegator];
         uint96 delegatorBalance = balances[delegator];
@@ -237,16 +241,21 @@ contract Comp {
         balances[src] = sub96(balances[src], amount, "Comp::_transferTokens: transfer amount exceeds balance");
         balances[dst] = add96(balances[dst], amount, "Comp::_transferTokens: transfer amount overflows");
         emit Transfer(src, dst, amount);
-
+     // 转账的时候多做个一步  
+     // 转移票数
         _moveDelegates(delegates[src], delegates[dst], amount);
     }
 
     function _moveDelegates(address srcRep, address dstRep, uint96 amount) internal {
+       
+       
         if (srcRep != dstRep && amount > 0) {
             if (srcRep != address(0)) {
                 uint32 srcRepNum = numCheckpoints[srcRep];
                 uint96 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
+                // 用户新的票数
                 uint96 srcRepNew = sub96(srcRepOld, amount, "Comp::_moveVotes: vote amount underflows");
+                // 检查点
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
 
@@ -259,12 +268,14 @@ contract Comp {
         }
     }
 
+   // 检查点
     function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint96 oldVotes, uint96 newVotes) internal {
       uint32 blockNumber = safe32(block.number, "Comp::_writeCheckpoint: block number exceeds 32 bits");
 
       if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
           checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
       } else {
+
           checkpoints[delegatee][nCheckpoints] = Checkpoint(blockNumber, newVotes);
           numCheckpoints[delegatee] = nCheckpoints + 1;
       }
